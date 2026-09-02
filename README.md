@@ -4,8 +4,8 @@ A private contact tracker for the people you want to stay in touch with — buil
 
 ## Live URL
 
-**App:** _add the deployed frontend URL here after running `vercel --prod` in `frontend/` (see [Deployment](#deployment))_
-**Backend API:** _add the deployed backend URL here after deploying `backend/`_
+**App:** https://frontend-sepia-ten-34.vercel.app
+**Backend API:** https://backend-one-gules-64.vercel.app/api
 
 ## Screenshots / walkthrough
 
@@ -208,6 +208,12 @@ vercel
 Set `VITE_NEON_AUTH_BASE_URL`, `VITE_NEON_DATA_API_URL`, and `VITE_API_URL` (the backend's deployed URL, e.g. `https://your-backend.vercel.app/api`) as environment variables in the Vercel project dashboard, then redeploy so the build picks them up.
 
 Once both are live, update `FRONTEND_URL` on the backend project (and redeploy it) to the frontend's real URL so CORS allows it.
+
+**Trusted domain (easy to miss):** Managed Better Auth rejects sign-in/sign-up requests from an origin it doesn't recognize (`{"code":"INVALID_ORIGIN"}`, HTTP 403) — `localhost` works out of the box, but a deployed URL doesn't until you add it:
+```bash
+neon neon-auth domain add https://your-frontend.vercel.app
+```
+(or via the Neon Console's Auth → Configuration → Trusted Domains page). Do this once per deployed frontend URL.
 
 ## Known limitations / what's next
 
