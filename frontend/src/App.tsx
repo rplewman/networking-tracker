@@ -106,15 +106,20 @@ function Dashboard({ userEmail }: { userEmail: string }) {
   const hasFilters = filters.priority !== "" || filters.q.trim() !== "";
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <div className="mx-auto max-w-5xl px-4 py-6">
+      <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">Networking Tracker</h1>
           <p className="text-sm text-slate-500">Signed in as {userEmail}</p>
         </div>
-        <Button variant="secondary" onClick={() => neonAuth.auth.signOut()}>
-          Sign out
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setShowCreateForm((v) => !v)} variant={showCreateForm ? "ghost" : "primary"}>
+            {showCreateForm ? "Cancel" : "+ Add contact"}
+          </Button>
+          <Button variant="secondary" onClick={() => neonAuth.auth.signOut()}>
+            Sign out
+          </Button>
+        </div>
       </header>
 
       {banner && (
@@ -123,14 +128,8 @@ function Dashboard({ userEmail }: { userEmail: string }) {
         </div>
       )}
 
-      <div className="mb-4 flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4">
-        <FilterSortBar filters={filters} onChange={setFilters} />
-        <div>
-          <Button onClick={() => setShowCreateForm((v) => !v)} variant={showCreateForm ? "ghost" : "primary"}>
-            {showCreateForm ? "Cancel" : "+ Add contact"}
-          </Button>
-        </div>
-        {showCreateForm && (
+      {showCreateForm && (
+        <div className="mb-4">
           <ContactForm
             onSubmit={handleCreate}
             onCancel={() => {
@@ -140,7 +139,17 @@ function Dashboard({ userEmail }: { userEmail: string }) {
             submitLabel="Add contact"
             serverError={createError}
           />
-        )}
+        </div>
+      )}
+
+      <div className="mb-3 rounded-lg border border-slate-200 bg-white p-3">
+        <FilterSortBar filters={filters} onChange={setFilters} />
+      </div>
+
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-sm font-medium text-slate-500">
+          {loading ? "Loading contacts…" : `${contacts?.length ?? 0} contact${contacts?.length === 1 ? "" : "s"}`}
+        </h2>
       </div>
 
       {loading && <LoadingView />}
