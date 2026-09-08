@@ -9,13 +9,37 @@ A private contact tracker for the people you want to stay in touch with — buil
 
 ## Screenshots / walkthrough
 
+All screenshots below are from the live deployment, captured against a real (throwaway demo) account — not mockups.
+
 1. **Sign in** — a minimal email/password form (Managed Better Auth). New users can switch to "Sign up" from the same screen.
+
+   ![Sign in screen](docs/screenshots/01-sign-in.png)
+
 2. **Empty state** — a fresh account shows "No contacts yet — add the first person you want to stay in touch with." instead of a bare blank page.
-3. **Add a contact** — click "+ Add contact", fill in Name and Priority (required) plus Company / Role / Where you met / Notes (optional), submit. A green "Contact added." banner confirms success and the row appears immediately.
-4. **Sort & filter** — the toolbar has a text search (matches name, company, or where-met), a priority filter, a sort-by dropdown (date added / name / priority / company), and an ascending/descending toggle.
+
+   ![Empty state](docs/screenshots/02-empty-state.png)
+
+3. **Add a contact** — click "+ Add contact" in the header, fill in Name and Priority (required) plus Company / Role / Where you met / Notes (optional), submit.
+
+   ![Add contact form filled out](docs/screenshots/03-add-contact.png)
+
+   A green "Contact added." banner confirms success and the row appears immediately:
+
+   ![Contact added, showing in the list](docs/screenshots/04-sort-filter.png)
+
+4. **Sort & filter** — the toolbar has a text search (matches name, company, or where-met), a priority filter, a sort-by dropdown (date added / name / priority / company), and an ascending/descending toggle. The screenshot above has the priority filter set to "High," correctly narrowing three contacts down to the one that matches.
+
 5. **Edit / delete** — "Edit" swaps a row for an inline form pre-filled with that contact's data; "Delete" asks for confirmation, then removes the row.
-6. **Validation errors** — leaving Name blank or forcing an invalid priority (e.g. via a raw API call) returns a clear error instead of silently failing or crashing.
-7. **Mobile layout** — below the `md` breakpoint the table becomes a stack of cards instead of a horizontally-scrolling table.
+
+   ![Inline edit form open on a contact](docs/screenshots/05-edit-delete.png)
+
+6. **Validation errors** — leaving Name blank returns a clear inline error instead of silently failing; the same rule is enforced again server-side even if the browser's own check is bypassed (see [Security & RLS](#security--rls)).
+
+   ![Validation error: Name is required](docs/screenshots/06-validation-error.png)
+
+7. **Mobile layout** — below the `md` breakpoint the table becomes a stack of cards instead of a horizontally-scrolling table, and the whole list (all 3 demo contacts) is visible without scrolling.
+
+   ![Mobile card layout showing three contacts](docs/screenshots/07-mobile-layout.png)
 
 ## Features
 
