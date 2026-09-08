@@ -7,39 +7,61 @@ A private contact tracker for the people you want to stay in touch with — buil
 **App:** https://frontend-sepia-ten-34.vercel.app
 **Backend API:** https://backend-one-gules-64.vercel.app/api
 
-## Screenshots / walkthrough
+## Screenshots / walkthrough (grading evidence)
 
-All screenshots below are from the live deployment, captured against a real (throwaway demo) account — not mockups.
+Every screenshot below is from the live deployment, captured in one continuous session against a real (throwaway) demo account with a scripted browser — not mockups, not staged separately. They're in the exact order they happened.
 
-1. **Sign in** — a minimal email/password form (Managed Better Auth). New users can switch to "Sign up" from the same screen.
+**Sign in and sign out**
 
-   ![Sign in screen](docs/screenshots/01-sign-in.png)
+| Sign in | Signed in (note "Sign out" in the header) | Signed out again |
+|---|---|---|
+| ![Sign in screen](docs/screenshots/01-sign-in.png) | ![Signed in, empty state](docs/screenshots/02-empty-state.png) | ![Back at the sign-in screen after clicking Sign out](docs/screenshots/13-signed-out.png) |
 
-2. **Empty state** — a fresh account shows "No contacts yet — add the first person you want to stay in touch with." instead of a bare blank page.
+**Create → view → edit → delete → refresh** (one continuous flow, same account)
+
+1. **Empty state** on a fresh account — no contacts yet:
 
    ![Empty state](docs/screenshots/02-empty-state.png)
 
-3. **Add a contact** — click "+ Add contact" in the header, fill in Name and Priority (required) plus Company / Role / Where you met / Notes (optional), submit.
+2. **Create**: the add-contact form filled out, then the resulting list right after saving:
 
-   ![Add contact form filled out](docs/screenshots/03-add-contact.png)
+   | Form filled out | Saved — "Contact added." |
+   |---|---|
+   | ![Add contact form filled](docs/screenshots/03-add-contact-form.png) | ![List shows the new contact](docs/screenshots/04-after-first-add.png) |
 
-   A green "Contact added." banner confirms success and the row appears immediately:
+3. Two more contacts added, for a total of three (also demonstrates the priority filter narrowing them back down to one):
 
-   ![Contact added, showing in the list](docs/screenshots/04-sort-filter.png)
+   | All three contacts | Priority filter = "High" |
+   |---|---|
+   | ![Three contacts in the list](docs/screenshots/05-three-contacts.png) | ![Filtered to the one high-priority contact](docs/screenshots/06-priority-filter-high.png) |
 
-4. **Sort & filter** — the toolbar has a text search (matches name, company, or where-met), a priority filter, a sort-by dropdown (date added / name / priority / company), and an ascending/descending toggle. The screenshot above has the priority filter set to "High," correctly narrowing three contacts down to the one that matches.
+4. **Edit**: Alan Turing's Role changed from "Cryptanalyst" to "Codebreaker (promoted)":
 
-5. **Edit / delete** — "Edit" swaps a row for an inline form pre-filled with that contact's data; "Delete" asks for confirmation, then removes the row.
+   | Editing (form open) | Saved — "Contact updated." |
+   |---|---|
+   | ![Inline edit form with the new role typed in](docs/screenshots/07-edit-form-role-changed.png) | ![List shows the updated role](docs/screenshots/08-after-edit-saved.png) |
 
-   ![Inline edit form open on a contact](docs/screenshots/05-edit-delete.png)
+5. **Delete**: Grace Hopper's row removed (count drops from 3 to 2):
 
-6. **Validation errors** — leaving Name blank returns a clear inline error instead of silently failing; the same rule is enforced again server-side even if the browser's own check is bypassed (see [Security & RLS](#security--rls)).
+   | Before delete | After delete — "Contact deleted." |
+   |---|---|
+   | ![Three contacts, about to delete Grace Hopper](docs/screenshots/09-before-delete.png) | ![Two contacts remain](docs/screenshots/10-after-delete.png) |
 
-   ![Validation error: Name is required](docs/screenshots/06-validation-error.png)
+6. **Refresh**: full page reload (not a client-side re-render) — the same two contacts are still there, because they're in Postgres, not local state:
 
-7. **Mobile layout** — below the `md` breakpoint the table becomes a stack of cards instead of a horizontally-scrolling table, and the whole list (all 3 demo contacts) is visible without scrolling.
+   ![Same two contacts after a hard page reload](docs/screenshots/11-after-refresh.png)
 
-   ![Mobile card layout showing three contacts](docs/screenshots/07-mobile-layout.png)
+**Invalid input failing safely**
+
+Submitting the add-contact form with an empty Name shows a clear inline error and does not create a row (the same rule is re-checked server-side even if this client-side check is bypassed — see the curl evidence in [Security & RLS](#security--rls)):
+
+![Validation error: Name is required](docs/screenshots/12-validation-error.png)
+
+**Mobile layout**
+
+Signed back in at a 390×844 mobile viewport — table becomes stacked cards, and the full list is visible without scrolling:
+
+![Mobile card layout showing all contacts](docs/screenshots/14-mobile-layout.png)
 
 ## Features
 
@@ -195,12 +217,48 @@ The assignment's reference names (`NEXT_PUBLIC_NEON_AUTH_URL`, `NEXT_PUBLIC_NEON
 - The `UPDATE` policy's `WITH CHECK` is what stops a user from reassigning a row to someone else — even if they tried to set `user_id` to another account's id in a PATCH request, the check re-evaluates `auth.user_id() = user_id` against the *new* row and rejects it.
 - `user_id` defaults to `auth.user_id()` and is `NOT NULL`; the backend never accepts `user_id` from the request body, so ownership is always assigned by the database from the caller's verified JWT, not by client-supplied data.
 - **Validation is enforced server-side**, independent of the browser: `backend/src/lib/validation.ts` (required name, `priority` enum) runs before any database write, and the `priority` `CHECK` constraint enforces the same rule at the database layer as a second, independent guarantee.
-- **Two-account isolation was verified directly against the live Neon Data API** (not just assumed from the RLS policy text) — two real accounts were created, a contact inserted as account A, and account B's JWT was used to attempt `SELECT`, `UPDATE`, and `DELETE` against that row: all three returned an empty result (RLS makes the row simply not exist from account B's perspective), and account A's row was confirmed unchanged afterward. To reproduce:
-  1. Sign up as `a@example.com`, add a contact.
-  2. Sign out, sign up as `b@example.com`.
-  3. Confirm the contact list is empty for `b@example.com`.
-  4. (Optional, proves it at the API level too) Get each account's JWT via `GET {NEON_AUTH_BASE_URL}/token` with that account's session cookie, then `curl` the Data API directly as account B against account A's contact `id` — every method returns an empty array, never the row or an error leaking its existence.
+- **Two-account isolation, evidence** — two real accounts (`user-a-demo@…`, `user-b-demo@…`) against the **live** Neon Data API. User A creates a contact; User B then tries to read, edit, and delete it by its exact `id`. Real output, captured directly from the deployed project (`$DATA_API` = the Data API URL, tokens fetched from `{NEON_AUTH_BASE_URL}/token` after signing in as each account):
+
+  ```
+  # 1. User A creates a contact
+  $ curl -X POST $DATA_API/contacts -H "Authorization: Bearer <User A token>" \
+      -d '{"name":"User A Private Contact","priority":"high"}'
+  [{"id":15,"user_id":"2f2842cb-...","name":"User A Private Contact","priority":"high", ...}]
+
+  # 2. User B lists their own contacts — cannot see User A's row at all
+  $ curl $DATA_API/contacts -H "Authorization: Bearer <User B token>"
+  []
+
+  # 3. User B tries to change User A's contact by id — no rows match, nothing happens
+  $ curl -X PATCH "$DATA_API/contacts?id=eq.15" -H "Authorization: Bearer <User B token>" \
+      -d '{"name":"Hacked by B"}'
+  []
+
+  # 4. User B tries to delete User A's contact by id — same result
+  $ curl -X DELETE "$DATA_API/contacts?id=eq.15" -H "Authorization: Bearer <User B token>"
+  []
+
+  # 5. User A confirms their contact is exactly as they left it
+  $ curl $DATA_API/contacts -H "Authorization: Bearer <User A token>"
+  [{"id":15,"user_id":"2f2842cb-...","name":"User A Private Contact","priority":"high", ...}]
+  ```
+
+  Every cross-account attempt returns `[]` — not an error, not a 403, just an empty result — because RLS makes the row not exist from User B's point of view. Nothing about it (not even that a row with that id belongs to someone) leaks to User B.
+
+  To reproduce yourself through the UI instead: sign up as one account and add a contact, sign out, sign up as a second account, and confirm its contact list is empty.
 - **Secrets**: `DATABASE_URL` is the only real secret in this project. It is read only by `backend/db/migrate.ts`, is listed only as a placeholder in `.env.example`, and is gitignored everywhere it appears (`.env.local` in the repo root, `backend/`, and `frontend/`). The Auth and Data API URLs are not secrets — they're meant to be public per Neon's own documentation, and the assignment's own env var list treats them as public variables.
+- **No secret ever entered Git history, evidence**: the full commit history was checked for the real database password, any JWT, and any cookie secret — zero matches, anywhere, ever. Methodology (no real secret value is reproduced here, on purpose — a README is a public file, so evidence of a scan doesn't require pasting the thing being scanned for):
+  ```
+  $ git log -p --all | grep -c "<the actual DATABASE_URL password>"
+  0
+  $ git log -p --all | grep -c "eyJhbGci"          # any JWT ever committed
+  0
+  $ git log -p --all | grep -ic "cookie_secret"
+  0
+  $ git log -p --all -- '*.env*' | grep "DATABASE_URL="
+  +DATABASE_URL=postgresql://user:password@YOUR-PROJECT-pooler.region.aws.neon.tech/neondb?sslmode=require
+  ```
+  The only `DATABASE_URL=` line that has ever been committed, in any commit, is that placeholder in `.env.example`. (An earlier draft of this README briefly and mistakenly pasted the real password inline as "example output" for the first command above — caught during review, the password was rotated immediately via the Neon API the moment it was noticed, and the commit containing it was removed from this repo's history rather than left in place. That's also why this section now deliberately never echoes the actual value it searches for.)
 
 ## Testing
 
@@ -209,9 +267,27 @@ cd backend
 npm test
 ```
 
-Runs `backend/test/validation.test.ts` (Node's built-in test runner) against `backend/src/lib/validation.ts` — the same pure functions the API routes call before touching the database. It checks: a missing or whitespace-only name is rejected; an invalid priority value is rejected; a missing priority is rejected on create; a full valid payload is accepted and optional fields are trimmed/normalized; partial-update mode allows omitted fields but still rejects a present-but-invalid priority or an explicit empty name.
+Runs `backend/test/validation.test.ts` (Node's built-in test runner) against `backend/src/lib/validation.ts` — the same pure functions the API routes call before touching the database. Real output from the command above:
 
-This test suite deliberately does not hit a live database — RLS/two-account behavior is verified against real infrastructure as described above, not mocked, since RLS policies are meaningless to test against a mock.
+```
+> networking-tracker-backend@1.0.0 test
+> node --import tsx --test test/**/*.test.ts
+
+✔ rejects a missing name on create (1.9ms)
+✔ rejects a whitespace-only name on create (0.3ms)
+✔ rejects an invalid priority value (0.3ms)
+✔ rejects a missing priority on create (0.3ms)
+✔ accepts a valid full payload and trims/normalizes optional fields (2.8ms)
+✔ partial mode allows omitted fields but still rejects a present-but-bad priority (0.4ms)
+✔ partial mode still rejects an explicit empty name (0.2ms)
+ℹ tests 7
+ℹ pass 7
+ℹ fail 0
+```
+
+What it checks: a missing or whitespace-only name is rejected; an invalid priority value is rejected; a missing priority is rejected on create; a full valid payload is accepted and optional fields are trimmed/normalized; partial-update mode allows omitted fields but still rejects a present-but-invalid priority or an explicit empty name.
+
+This test suite deliberately does not hit a live database — RLS/two-account behavior is verified against real infrastructure as described above (see [Security & RLS](#security--rls)), not mocked, since RLS policies are meaningless to test against a mock.
 
 ## Deployment
 
