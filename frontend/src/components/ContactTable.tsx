@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Contact, ContactDraft } from "../lib/types";
 import { contactToDraft } from "../lib/types";
 import { ContactForm } from "./ContactForm";
@@ -13,6 +14,59 @@ interface ContactTableProps {
   onCancelEdit: () => void;
   onSaveEdit: (id: number, draft: ContactDraft) => Promise<void>;
   onDelete: (id: number) => void;
+}
+
+/**
+ * Two-step in-app confirmation instead of window.confirm(). Native dialogs
+ * are unreliable here: browsers silently suppress repeated confirm() calls
+ * on the same page, some embedded/mobile contexts block them outright, and
+ * either way a suppressed dialog returns false with no visible feedback —
+ * which looks indistinguishable from "delete is broken."
+ */
+function DeleteButton({
+  contactId,
+  deletingId,
+  onDelete,
+}: {
+  contactId: number;
+  deletingId: number | null;
+  onDelete: (id: number) => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const isDeleting = deletingId === contactId;
+
+  if (isDeleting) {
+    return (
+      <Button variant="danger" disabled>
+        Deleting…
+      </Button>
+    );
+  }
+
+  if (confirming) {
+    return (
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" onClick={() => setConfirming(false)}>
+          Cancel
+        </Button>
+        <Button
+          variant="danger"
+          onClick={() => {
+            setConfirming(false);
+            onDelete(contactId);
+          }}
+        >
+          Confirm delete
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <Button variant="danger" onClick={() => setConfirming(true)}>
+      Delete
+    </Button>
+  );
 }
 
 export function ContactTable({
@@ -68,9 +122,7 @@ export function ContactTable({
                       <Button variant="ghost" onClick={() => onStartEdit(c.id)}>
                         Edit
                       </Button>
-                      <Button variant="danger" onClick={() => onDelete(c.id)} disabled={deletingId === c.id}>
-                        {deletingId === c.id ? "Deleting…" : "Delete"}
-                      </Button>
+                      <DeleteButton contactId={c.id} deletingId={deletingId} onDelete={onDelete} />
                     </div>
                   </td>
                 </tr>
@@ -105,13 +157,11 @@ export function ContactTable({
               </div>
               {c.where_met && <p className="mt-2 text-sm text-slate-600">Met: {c.where_met}</p>}
               {c.notes && <p className="mt-1 text-sm text-slate-500">{c.notes}</p>}
-              <div className="mt-3 flex justify-end gap-2">
+              <div className="mt-3 flex flex-wrap justify-end gap-2">
                 <Button variant="ghost" onClick={() => onStartEdit(c.id)}>
                   Edit
                 </Button>
-                <Button variant="danger" onClick={() => onDelete(c.id)} disabled={deletingId === c.id}>
-                  {deletingId === c.id ? "Deleting…" : "Delete"}
-                </Button>
+                <DeleteButton contactId={c.id} deletingId={deletingId} onDelete={onDelete} />
               </div>
             </div>
           ),

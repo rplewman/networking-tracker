@@ -90,7 +90,9 @@ function Dashboard({ userEmail }: { userEmail: string }) {
   }
 
   async function handleDelete(id: number) {
-    if (!confirm("Delete this contact? This can't be undone.")) return;
+    // Confirmation happens in ContactTable's own UI (DeleteButton), not via
+    // window.confirm() — native dialogs get silently suppressed in some
+    // browsers/contexts, which made deletes look broken with zero feedback.
     setDeletingId(id);
     try {
       await deleteContact(id);
